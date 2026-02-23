@@ -23,6 +23,8 @@ parent=<fullpath>/myshell (set in child before exec)
 #include <sys/wait.h>
 #define MAX_LINE 1024
 //Other functions needed ...
+extern char **environ; //null terminated array of strings
+
 static void reap_zombies(void) {
 // OPTIONAL (but recommended if you support '&')
 // Perhaps this will be useful: waitpid(-1, NULL, WNOHANG)
@@ -108,6 +110,19 @@ static int process_line(char *line)
         return 1;
     }
 
+        // environ command
+    if (strcmp(cmd, "environ") == 0)
+    {
+        char **env = environ;
+
+        while (*env != NULL)
+        {
+            printf("%s\n", *env);
+            env++;
+        }
+
+        return 1;
+    }
     return 1;
 }
 
@@ -137,6 +152,15 @@ if (process_line(line) == 0) break;
 }
 if (in != stdin) fclose(in);
 return 0;
+}
+
+void print_environ() {
+    char **env = environ;
+
+    while (*env != NULL) {
+        printf("%s\n", *env);
+        env++;
+    }
 }
 /*
 ========================
