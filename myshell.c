@@ -13,6 +13,10 @@ shell=<fullpath>/myshell (set in main)
 parent=<fullpath>/myshell (set in child before exec)
 - prompt includes current directory
 */
+
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
+
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
