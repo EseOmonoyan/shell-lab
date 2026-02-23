@@ -17,19 +17,20 @@ parent=<fullpath>/myshell (set in child before exec)
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 
-#include <string.h>
+#include <string.h> 
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#include <dirent.h> //directory command
+#include <dirent.h> 
 #include <sys/types.h>
 #include <sys/wait.h>
 #define MAX_LINE 1024
 // Other functions needed ...
 extern char **environ; // null terminated array of strings
 
+//REAP ZOMBIES
 static void reap_zombies(void)
 {
     // Reap any finished background children so you don’t get zombies
@@ -38,6 +39,8 @@ static void reap_zombies(void)
         // keep reaping
     }
 }
+
+//PROCES LINE
 static int process_line(char *line)
 {
     // Skip empty lines
@@ -47,7 +50,7 @@ static int process_line(char *line)
         return 1;
     }
 
-    // Built-in: quit
+    // Built-in: QUIT
     if (strcmp(cmd, "quit") == 0)
     {
         return 0;
@@ -66,15 +69,17 @@ static int process_line(char *line)
     char *token;
     while ((token = strtok(NULL, " \t\n")) != NULL && argc < 63)
     {
+        //INPUT REDIRECTION
         if (strcmp(token, "<") == 0)
         {
             infile = strtok(NULL, " \t\n");
             if (infile == NULL)
             {
-                fprintf(stderr, "Error: missing input file after '<'\n");
+                fprintf(stderr, "Error: missing input file after '<'\n"); //for missing file names
                 return 1;
             }
         }
+        //OUTPUT REDIRECTION
         else if (strcmp(token, ">>") == 0)
         {
             outfile = strtok(NULL, " \t\n");
@@ -85,6 +90,7 @@ static int process_line(char *line)
             }
             append = 1;
         }
+        //OUTPUT OVERWRITE
         else if (strcmp(token, ">") == 0)
         {
             outfile = strtok(NULL, " \t\n");
@@ -101,7 +107,8 @@ static int process_line(char *line)
         }
     }
     args[argc] = NULL;
-
+    
+    //Check for background execution
     if (argc > 0 && strcmp(args[argc - 1], "&") == 0)
     {
         background = 1;
@@ -128,6 +135,7 @@ static int process_line(char *line)
         (strcmp(cmd, "echo") == 0) ||
         (strcmp(cmd, "help") == 0);
 
+    // store stdout in parent temp if internal output producting command w redirection
     if (is_internal && internal_needs_stdout_redir && outfile != NULL)
     {
         saved_stdout = dup(STDOUT_FILENO);
@@ -161,19 +169,19 @@ static int process_line(char *line)
         char *path = args[1];
         if (path == NULL)
         {
-            printf("cd: missing argument\n");
+            printf("cd: missing argument\n"); //if no directory
         }
         else if (chdir(path) != 0)
         {
-            perror("cd");
+            perror("cd"); //change directory if err
         }
 
         if (saved_stdout != -1)
         {
-            fflush(stdout);
-            dup2(saved_stdout, STDOUT_FILENO);
-            close(saved_stdout);
-            close(out_fd);
+            fflush(stdout); //flush
+            dup2(saved_stdout, STDOUT_FILENO); //restore terminal
+            close(saved_stdout); //close fd (saved)
+            close(out_fd); //close fd (file)
         }
         return 1;
     }
@@ -181,7 +189,7 @@ static int process_line(char *line)
     // clr command
     if (strcmp(cmd, "clr") == 0)
     {
-        printf("\033[2J\033[H");
+        printf("\033[2J\033[H"); //escape sequence to clear screen and move cursor
         fflush(stdout);
 
         if (saved_stdout != -1)
@@ -198,11 +206,11 @@ static int process_line(char *line)
     if (strcmp(cmd, "dir") == 0)
     {
         char *path = args[1];
-        if (path == NULL)
+        if (path == NULL) //if no path use current
         {
             path = ".";
         }
-
+        //open directory stream
         DIR *d = opendir(path);
         if (d == NULL)
         {
@@ -217,13 +225,13 @@ static int process_line(char *line)
             return 1;
         }
 
-        struct dirent *entry;
+        struct dirent *entry; //read entries and print respective names
         while ((entry = readdir(d)) != NULL)
         {
             printf("%s\n", entry->d_name);
         }
 
-        closedir(d);
+        closedir(d); //close directory stream
 
         if (saved_stdout != -1)
         {
@@ -236,7 +244,7 @@ static int process_line(char *line)
     }
 
     // environ command
-    if (strcmp(cmd, "environ") == 0)
+    if (strcmp(cmd, "environ") == 0) //print until NULL
     {
         char **env = environ;
         while (*env != NULL)
@@ -258,7 +266,7 @@ static int process_line(char *line)
     // echo command
     if (strcmp(cmd, "echo") == 0)
     {
-        for (int i = 1; args[i] != NULL; i++)
+        for (int i = 1; args[i] != NULL; i++) //print all after echo
         {
             printf("%s", args[i]);
             if (args[i + 1] != NULL)
@@ -281,7 +289,7 @@ static int process_line(char *line)
     // help command
     if (strcmp(cmd, "help") == 0)
     {
-        system("more readme");
+        system("more readme"); //display readme
 
         if (saved_stdout != -1)
         {
@@ -335,7 +343,7 @@ static int process_line(char *line)
             dup2(fd_in, STDIN_FILENO);
             close(fd_in);
         }
-
+        //for output redirection
         if (outfile)
         {
             int flags = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
@@ -364,7 +372,7 @@ static int process_line(char *line)
         // parent process
         if (!background)
         {
-            int status;
+            int status; //block until child is done
             waitpid(pid, &status, 0);
         }
         else
@@ -385,7 +393,7 @@ int main(int argc, char *argv[])
         in = fopen(argv[1], "r");
         if (!in)
         {
-            perror("fopen");
+            perror("fopen"); // if error opening batch file, print error and exit
             return 1;
         }
     }
@@ -397,10 +405,7 @@ int main(int argc, char *argv[])
     char line[MAX_LINE];
     char cwd[PATH_MAX];
 
-    // =========================
-    // Shell environment setup
-    // =========================
-
+    // Shell environment setup: set "shell" to the full path of myshell
     char resolved_path[PATH_MAX];
 
     if (realpath(argv[0], resolved_path) != NULL)
@@ -414,12 +419,12 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        reap_zombies();
+        reap_zombies(); //reap any completed background children
         if (in == stdin)
         {
             if (getcwd(cwd, sizeof(cwd)) == NULL)
             {
-                perror("getcwd");
+                perror("getcwd"); //if error getting current working directory, print error 
                 break;
             }
             printf(">myshell:%s$ ", cwd);
@@ -430,12 +435,12 @@ int main(int argc, char *argv[])
         if (process_line(line) == 0)
             break;
     }
-    if (in != stdin)
+    if (in != stdin) //close bartch file if used
         fclose(in);
     return 0;
 }
 
-void print_environ()
+void print_environ() //helper function to print environment variables
 {
     char **env = environ;
 
