@@ -179,6 +179,56 @@ static int process_line(char *line)
             setenv("parent", shell_path, 1);
         }
 
+        // I/O Redirection
+        for (int i = 0; args[i] != NULL; i++)
+        {
+            if (strcmp(args[i], "<") == 0)
+            {
+                FILE *file = fopen(args[i + 1], "r");
+                if (!file)
+                {
+                    perror("fopen");
+                    exit(1);
+                }
+
+                dup2(fileno(file), STDIN_FILENO);
+                fclose(file);
+
+                args[i] = NULL;
+                break;
+            }
+            else if (strcmp(args[i], ">") == 0)
+            {
+                FILE *file = fopen(args[i + 1], "w");
+                if (!file)
+                {
+                    perror("fopen");
+                    exit(1);
+                }
+
+                dup2(fileno(file), STDOUT_FILENO);
+                fclose(file);
+
+                args[i] = NULL;
+                break;
+            }
+            else if (strcmp(args[i], ">>") == 0)
+            {
+                FILE *file = fopen(args[i + 1], "a");
+                if (!file)
+                {
+                    perror("fopen");
+                    exit(1);
+                }
+
+                dup2(fileno(file), STDOUT_FILENO);
+                fclose(file);
+
+                args[i] = NULL;
+                break;
+            }
+        }
+
         execvp(args[0], args);
 
         perror("execvp");
