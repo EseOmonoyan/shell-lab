@@ -215,6 +215,22 @@ int main(int argc, char *argv[])
     }
     char line[MAX_LINE];
     char cwd[PATH_MAX];
+
+    // =========================
+    // Shell environment setup
+    // =========================
+
+    char resolved_path[PATH_MAX];
+
+    if (realpath(argv[0], resolved_path) != NULL)
+    {
+        setenv("shell", resolved_path, 1);
+    }
+    else
+    {
+        perror("realpath failed");
+    }
+
     while (1)
     {
         reap_zombies();
