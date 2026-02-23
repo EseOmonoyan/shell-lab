@@ -22,12 +22,14 @@ parent=<fullpath>/myshell (set in child before exec)
 #include <sys/types.h>
 #include <sys/wait.h>
 #define MAX_LINE 1024
-//Other functions needed ...
-extern char **environ; //null terminated array of strings
+// Other functions needed ...
+extern char **environ; // null terminated array of strings
 
-static void reap_zombies(void) {
+static void reap_zombies(void)
+{
     // Reap any finished background children so you don’t get zombies
-    while (waitpid(-1, NULL, WNOHANG) > 0) {
+    while (waitpid(-1, NULL, WNOHANG) > 0)
+    {
         // keep reaping
     }
 }
@@ -73,7 +75,7 @@ static int process_line(char *line)
     // clr command
     if (strcmp(cmd, "clr") == 0)
     {
-        printf("\033[2J\033[H");  // clear screen
+        printf("\033[2J\033[H"); // clear screen
         fflush(stdout);          // force output
         return 1;
     }
@@ -107,11 +109,11 @@ static int process_line(char *line)
             printf("%s\n", entry->d_name);
         }
 
-        closedir(d);  // close directory
+        closedir(d); // close directory
         return 1;
     }
 
-        // environ command
+    // environ command
     if (strcmp(cmd, "environ") == 0)
     {
         char **env = environ;
@@ -124,10 +126,23 @@ static int process_line(char *line)
 
         return 1;
     }
-    
-    // =========================
+
+    // pause command
+    if (strcmp(cmd, "pause") == 0)
+    {
+        printf("Shell paused. Press ENTER to continue...\n");
+
+        // wait for enter key press
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF)
+        {
+            // consuming until newline
+        }
+
+        return 1;
+    }
+
     // External command execution
-    // =========================
 
     char *args[64];
     int argc = 0;
@@ -180,40 +195,55 @@ static int process_line(char *line)
     }
 }
 
-
-
-
-
-int main(int argc, char *argv[]) {
-//TODO: set environment variable "shell" to the full path of myshell
-FILE *in = stdin;
-if (argc == 2) {
-in = fopen(argv[1], "r");
-if (!in) { perror("fopen"); return 1; }
-} else if (argc > 2) {
-fprintf(stderr, "Usage: %s [batchfile]\n", argv[0]);
-return 1;
+int main(int argc, char *argv[])
+{
+    // TODO: set environment variable "shell" to the full path of myshell
+    FILE *in = stdin;
+    if (argc == 2)
+    {
+        in = fopen(argv[1], "r");
+        if (!in)
+        {
+            perror("fopen");
+            return 1;
+        }
+    }
+    else if (argc > 2)
+    {
+        fprintf(stderr, "Usage: %s [batchfile]\n", argv[0]);
+        return 1;
+    }
+    char line[MAX_LINE];
+    char cwd[PATH_MAX];
+    while (1)
+    {
+        reap_zombies();
+        if (in == stdin)
+        {
+            if (getcwd(cwd, sizeof(cwd)) == NULL)
+            {
+                perror("getcwd");
+                break;
+            }
+            printf(">myshell:%s$ ", cwd);
+            fflush(stdout);
+        }
+        if (!fgets(line, sizeof(line), in))
+            break; // EOF => exit (batch requirement)
+        if (process_line(line) == 0)
+            break;
+    }
+    if (in != stdin)
+        fclose(in);
+    return 0;
 }
-char line[MAX_LINE];
-char cwd[PATH_MAX];
-while (1) {
-reap_zombies();
-if (in == stdin) {
-if (getcwd(cwd, sizeof(cwd)) == NULL) { perror("getcwd"); break; }
-printf(">myshell:%s$ ", cwd);
-fflush(stdout);
-}
-if (!fgets(line, sizeof(line), in)) break; // EOF => exit (batch requirement)
-if (process_line(line) == 0) break;
-}
-if (in != stdin) fclose(in);
-return 0;
-}
 
-void print_environ() {
+void print_environ()
+{
     char **env = environ;
 
-    while (*env != NULL) {
+    while (*env != NULL)
+    {
         printf("%s\n", *env);
         env++;
     }
