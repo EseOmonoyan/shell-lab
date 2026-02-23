@@ -1,0 +1,108 @@
+Name: Ese Omonoyan
+Student Number 100917880
+
+LAB 2 USER MANUAL
+
+Overview
+myshell is a Unix shell accepted commands that are interactive from keyboard, or extracted from a batch file
+It supports a set of built in commands and is capable of both running external programs using child processes.
+
+Input format
+Command arguments and symbiols (<, >, >>, &) should be separated using whitespace (space and tabs)
+
+2. Starting myshell
+2.1 Prompt Mode (keyboard input)
+Running myshell without any arguments displays a prompt which shows the present working directory. The prompt sample shows the following appearance
+>myshell:/home/user/shell-lab$
+
+2.2 Batch Mode (file input)
+Run myshell with one argument: myshell batchfile
+In batch mode, myshell reads commands from batchfile by each line and exits when end of file is reached. Only one batch file at a time.
+
+3. Internal Commands (Built-ins)
+Handled directly without external programs.
+
+3.1 cd <directory>
+Changes current directory to <directory>, outputs an error if it does not exist, and updates pwd variable.
+- Absolute paths: '/' (e.g., cd /home)
+- Relative paths don't start with '/' (e.g. cd ..)
+
+3.2 clr
+Clears terminal
+
+3.3 dir <directory>
+Lists contents of <directory>
+
+3.4 environ
+Displays environment variables for myshell.
+
+3.5 echo <comment>
+Prints <comment> then newline. If nothing comes after it, then it prints a blank line. Reduction of multiple spaces and/or tabs to one space.
+
+3.6 help
+Displays this manual (readme file) using the more command.
+
+3.7 pause
+Pauses myshell until ENTER is pressed
+
+3.8 quit
+Leaves myshell.
+
+4. External Commands
+Non internal commands treated as external programs ran by forking a child process and using exec, allowing parent to continue.
+
+Examples: ls, pwd, cat file.txt, grep main myshell.c.
+
+5. Environment Variables (shell and parent)
+myshell uses two main environment variables:
+
+5.1 shell
+In parent, myshell sets: shell=/myshell, where /myshell is absolute path to executable.
+Check using:
+environ
+and look for the "shell=" entry.
+
+5.2 parent
+For external commands, the child's environment contains:
+parent=/myshell
+indicating the shell that launched the process.
+
+6. I/O Redirection
+myshell supports input/output redirection for external commands.
+Format example:
+program arg1 arg2 < inputfile > outputfile
+
+6.1 Input Redirection (<)
+Replaces stdin with file. 
+Example:
+cat < input.txt
+
+6.2 Output Redirection (>)
+Replaces stdout with file
+Example:
+echo hello > out.txt
+
+6.3 Output (>>)
+Attaches stdout to the file; creates if not there. 
+Example:
+echo world >> out.txt
+
+6.4 Redirection with Built-ins
+Works with dir, environ, echo, help. 
+Examples:
+dir > d.txt
+environ > e.txt
+echo hello world > test.txt
+help > manualC.txt
+NOTE: (<) is not supported for internal commands.
+
+7. Background Execution (&)
+Support for background running in external programs. Adding '&' to the end of a command launches it in background to be returned immediately.
+Example:
+sleep 5 &
+NOTE: Only for external commands.
+
+8. Exiting myshell
+Use 'quit' or press Ctrl+C
+
+End of readme.
