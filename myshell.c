@@ -26,10 +26,11 @@ parent=<fullpath>/myshell (set in child before exec)
 extern char **environ; //null terminated array of strings
 
 static void reap_zombies(void) {
-// OPTIONAL (but recommended if you support '&')
-// Perhaps this will be useful: waitpid(-1, NULL, WNOHANG)
+    // Reap any finished background children so you don’t get zombies
+    while (waitpid(-1, NULL, WNOHANG) > 0) {
+        // keep reaping
+    }
 }
-
 static int process_line(char *line)
 {
     char *cmd = strtok(line, " \t\n");
@@ -123,8 +124,63 @@ static int process_line(char *line)
 
         return 1;
     }
-    return 1;
+    
+    // =========================
+    // External command execution
+    // =========================
+
+    char *args[64];
+    int argc = 0;
+
+    args[argc++] = cmd;
+
+    char *token;
+    while ((token = strtok(NULL, " \t\n")) != NULL && argc < 63)
+    {
+        args[argc++] = token;
+    }
+    args[argc] = NULL;
+
+    int background = 0;
+    if (argc > 0 && strcmp(args[argc - 1], "&") == 0)
+    {
+        background = 1;
+        args[argc - 1] = NULL;
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        perror("fork");
+        return 1;
+    }
+
+    if (pid == 0)
+    {
+        char *shell_path = getenv("shell");
+        if (shell_path != NULL)
+        {
+            setenv("parent", shell_path, 1);
+        }
+
+        execvp(args[0], args);
+
+        perror("execvp");
+        exit(1);
+    }
+    else
+    {
+        if (!background)
+        {
+            int status;
+            waitpid(pid, &status, 0);
+        }
+        return 1;
+    }
 }
+
+
 
 
 
@@ -226,7 +282,7 @@ struct dirent *readdir(DIR *dir)
 closedir(DIR *dir)
 - closes the directory stream and releases resources
 --------------------------------------------------
-1.iv environ
+1.iv environ - cm
 --------------------------------------------------
 extern char **environ
 - a global variable provided by the C runtime
