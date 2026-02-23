@@ -47,6 +47,11 @@ static int process_line(char *line)
         return 1;
     }
 
+    // Built-in: quit
+    if (strcmp(cmd, "quit") == 0)
+    {
+        return 0;
+    }
     // Parse arguments + redirection tokens
     char *args[64];
     int argc = 0;
